@@ -24,6 +24,7 @@ def show_x(x):
 def classify(i, p):
     return p
 
+
 img_shape = (16, 16)
 
 mat = scipy.io.loadmat('usps_all.mat')
@@ -37,12 +38,13 @@ Nclasses = 10
 
 bin_data = []
 seg = []
-res = np.zeros((Nseg, Nclasses, Nset // Nseg), dtype=np.int8)
-# res.shape = (кол-во h, кол-во сегментов, кол-во классов, мощность выборки)
 
 test_data = np.zeros((Nseg, 256, Nset//Nseg, Nclasses), dtype=np.double)
 train_data = np.zeros((Nseg, 256, Nset - Nset//Nseg, Nclasses), dtype=np.double)
+class_data = np.zeros((Nseg, Nset - Nset//Nseg, Nclasses, Nclasses), dtype=np.double)
 bin_data = raw_data.copy()
+
+
 seg = []
 for j in range(0,Nseg):
     ## делаем 5 сегментов
@@ -56,6 +58,17 @@ for j in range(0, Nseg):
     # объединяем четыре оставшихся сегмента в train_data
     train_data[j] = np.concatenate(e[j], axis = 1)
 
+
+
+for i in range(Nseg):
+    for j in range(Nset - Nset//Nseg):
+        for k in range(Nclasses):
+            y_hat = np.zeros(10, np.float64)
+            y_hat[k] = 1
+            train_data[i,j,k] = y_hat
+
+print(train_data.shape)
+print(class_data.shape)
     
 def MyNetworkForward(weights, bias, x):
     h1 = weights @ x + bias
@@ -65,8 +78,15 @@ def MyNetworkForward(weights, bias, x):
 
 ls = []
 
-test_data = torch.from_numpy(test_data).permute((0,2,3,1))
-train_data = torch.from_numpy(train_data).permute((0,2,3,1))
+test_data = torch.from_numpy(test_data).permute((0,3,2,1)).flatten(0,2)
+
+train_data = torch.from_numpy(train_data).permute((0,3,2,1)).flatten(0,2)
+
+class_data = torch.from_numpy(class_data).flatten(0,2)
+
+print(train_data.shape)
+print(class_data.shape)
+#raise Exception
 
 b = (2 * np.random.rand( 10) - 1) / 10
 b = torch.from_numpy(b)
@@ -74,10 +94,10 @@ offset = Variable(b)
 
 
 dtype = torch.float64
-N, D_in, H, D_out = 64, 256, 100, 10
+N, D_in, H, D_out = 800, 256, 100, 10
 
-x = Variable(torch.randn(N, D_in).type(dtype), requires_grad=False)
-y = Variable(torch.randn(N, D_out).type(dtype), requires_grad=False)
+x = Variable(train_data, requires_grad=False)
+y = Variable(class_data, requires_grad=False)
 
 w1 = Variable(torch.randn(D_in, H).type(dtype), requires_grad=True)
 w2 = Variable(torch.randn(H, D_out).type(dtype), requires_grad=True)
