@@ -65,7 +65,7 @@ for i in range(Nseg):
         for k in range(Nclasses):
             y_hat = np.zeros(10, np.float64)
             y_hat[k] = 1
-            train_data[i,j,k] = y_hat
+            class_data[i,j,k] = y_hat
 
 print(train_data.shape)
 print(class_data.shape)
@@ -78,11 +78,11 @@ def MyNetworkForward(weights, bias, x):
 
 ls = []
 
-test_data = torch.from_numpy(test_data).permute((0,3,2,1)).flatten(0,2)
+test_data = torch.from_numpy(test_data).permute((0,2,3,1)).flatten(0,2)
 
-train_data = torch.from_numpy(train_data).permute((0,3,2,1)).flatten(0,2)
+train_data = torch.from_numpy(train_data).permute((0,2,3,1)).flatten(0,2)
 
-class_data = torch.from_numpy(class_data).flatten(0,2)
+class_data = torch.from_numpy(class_data).permute((0,1,3,2)).flatten(0,2)
 
 print(train_data.shape)
 print(class_data.shape)
@@ -94,7 +94,7 @@ offset = Variable(b)
 
 
 dtype = torch.float64
-N, D_in, H, D_out = 800, 256, 100, 10
+N, D_in, H, D_out = 800, 256, 20, 10
 
 x = Variable(train_data, requires_grad=False)
 y = Variable(class_data, requires_grad=False)
@@ -103,7 +103,7 @@ w1 = Variable(torch.randn(D_in, H).type(dtype), requires_grad=True)
 w2 = Variable(torch.randn(H, D_out).type(dtype), requires_grad=True)
 
 learning_rate = 1e-6
-for t in range(500):
+for t in range(20):
     y_pred = x.mm(w1).clamp(min=0).mm(w2)
 
     loss = (y_pred - y).pow(2).sum()
