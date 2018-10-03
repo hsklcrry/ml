@@ -54,7 +54,7 @@ class_data_test = torch.from_numpy( class_data_test).type(dtype).permute((0,1,2)
 #raise Exception
 
 dtype = torch.float64
-N, D_in, H, D_out = Nclasses*Nset, 256, 1000, 10
+N, D_in, H, D_out = Nclasses*Nset, 256, 100, 10
 
 x = Variable(train_data.type(dtype), requires_grad=False)
 y = Variable(class_data_test.type(dtype), requires_grad=False)
@@ -64,10 +64,10 @@ w1 = Variable(0.1*torch.randn(D_in, H).type(dtype), requires_grad=True)
 w2 = Variable(0.4*torch.randn(H, D_out).type(dtype), requires_grad=True)
 
 
-learning_rate = 0.7
+learning_rate = 0.07
 for t in range(N):
     x_t = Variable(x[t].data, requires_grad=False)
-    y_pred = x_t.add(b).mm(w1).sigmoid().mm(w2).sigmoid()
+    y_pred = x_t.add(b).matmul(w1).sigmoid().matmul(w2).sigmoid()
 
     loss = (y_pred - y[t]).pow(2).mean()
     
@@ -79,18 +79,18 @@ for t in range(N):
     w1.data -= learning_rate * w1.grad.data
     w2.data -= learning_rate * w2.grad.data
 
-    # print(b.grad.norm())
+    #print(w1.grad.norm())
     b.grad.data.zero_()
     w1.grad.data.zero_()
     w2.grad.data.zero_()
 
 
-y_pred = x.add(b).mm(w1).sigmoid().mm(w2).sigmoid()
-ans = torch.argmax(y, dim=1)
-ans_p = torch.argmax(y_pred, dim=1)
-
-valid = ((ans_p - ans) == 0).sum()
-print(valid)
+#y_pred = x.add(b).matmul(w1).sigmoid().mm(w2).sigmoid()
+#ans = torch.argmax(y, dim=1)
+#ans_p = torch.argmax(y_pred, dim=1)
+#
+#valid = ((ans_p - ans) == 0).sum()
+#print(valid)
 
 #y_test = test_data.mm(w1).tanh().mm(w2).tanh()
 #(M, _) = y_test.shape
