@@ -59,16 +59,17 @@ N, D_in, H, D_out = Nclasses*Nset, 256, 1000, 10
 x = Variable(train_data.type(dtype), requires_grad=False)
 y = Variable(class_data_test.type(dtype), requires_grad=False)
 
-#b = Variable(0.01*torch.randn(D_in).type(dtype), requires_grad=True)
-#w1 = Variable(0.1*torch.randn(D_in, H).type(dtype), requires_grad=True)
-#w2 = Variable(0.4*torch.randn(H, D_out).type(dtype), requires_grad=True)
+b = Variable(0.01*torch.randn(D_in).type(dtype), requires_grad=True)
+w1 = Variable(0.1*torch.randn(D_in, H).type(dtype), requires_grad=True)
+w2 = Variable(0.4*torch.randn(H, D_out).type(dtype), requires_grad=True)
 
 
-learning_rate = 0.1
-for t in range(5000):
-    y_pred = x.add(b).mm(w1).sigmoid().mm(w2).sigmoid()
+learning_rate = 0.7
+for t in range(N):
+    x_t = Variable(x[t].data, requires_grad=False)
+    y_pred = x_t.add(b).mm(w1).sigmoid().mm(w2).sigmoid()
 
-    loss = (y_pred - y).pow(2).mean()
+    loss = (y_pred - y[t]).pow(2).mean()
     
     print(t, loss.data)
 
