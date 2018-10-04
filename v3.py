@@ -61,22 +61,25 @@ train_class = torch.from_numpy( train_class).type(dtype).permute((0,1,2)).flatte
 #raise Exception
 
 
-N, D_in, H, D_out = Nclasses*Nset, 256, 1000, 10
+N, D_in, H1, H2, D_out = Nclasses*Nset, 256, 1024, 100, 10
 
 x = Variable(train_data.type(dtype), requires_grad=False)
 y = Variable(train_class.type(dtype), requires_grad=False)
 
-b = Variable(0.04*torch.randn(H).type(dtype), requires_grad=True)
-w1 = Variable(0.4*torch.randn(D_in, H).type(dtype), requires_grad=True)
-w2 = Variable(0.09*torch.randn(H, D_out).type(dtype), requires_grad=True)
+b = Variable(0.9*torch.randn(H1).type(dtype), requires_grad=True)
+w1 = Variable(2*torch.randn(D_in, H1).type(dtype), requires_grad=True)
+w2 = Variable(0.8*torch.randn(H1, H2).type(dtype), requires_grad=True)
+w3 = Variable(0.2*torch.randn(H2, D_out).type(dtype), requires_grad=True)
 
+def activ(x, b):
+    return x.matmul(w1).add(b).clamp(min=-1).matmul(w2).tanh().matmul(w3).sigmoid()
 
-learning_rate = 0.05
-for epoch in range(3):
+learning_rate = 0.1
+for epoch in range(1):
     for t in range(N):
         x_t = Variable(x[t].data, requires_grad=False)
-        y_pred = x_t.matmul(w1).add(b).tanh().matmul(w2).sigmoid()
-    
+        y_pred = activ(x_t, b)
+        
         loss = (y_pred - y[t]).pow(2).mean()
         
         print(t, loss.data)
@@ -86,16 +89,18 @@ for epoch in range(3):
         b.data  -= learning_rate * b.grad.data
         w1.data -= learning_rate * w1.grad.data
         w2.data -= learning_rate * w2.grad.data
+        w3.data -= learning_rate * w3.grad.data
     
         #print(w1.grad.norm())
         b.grad.data.zero_()
         w1.grad.data.zero_()
         w2.grad.data.zero_()
+        w3.grad.data.zero_()
 
 valid = 0
 for t in range(Nclasses*Mset):
     x_t = test_data[t]
-    y_pred = x_t.matmul(w1).add(b).tanh().matmul(w2).sigmoid()
+    y_pred = activ(x_t, b)
     
     ans_p = torch.argmax(y_pred)
     ans = torch.argmax(test_class[t])
@@ -105,9 +110,10 @@ for t in range(Nclasses*Mset):
 
 print('valid = {valid}%'.format(valid=100*valid/(Nclasses * Mset)))
 
-#print('Dispersion(b) = {d}'.format(d = torch.mean(b*b) - (torch.mean(b))**2))
-#print('Dispersion(w{n}) = {d}'.format(n=1, d = torch.mean(w1*w1) - (torch.mean(w1))**2))
-#print('Dispersion(w{n}) = {d}'.format(n=2, d = torch.mean(w2*w2) - (torch.mean(w2))**2))
+print('Dispersion(b) = {d}'.format(d = torch.mean(b*b) - (torch.mean(b))**2))
+print('Dispersion(w{n}) = {d}'.format(n=1, d = torch.mean(w1*w1) - (torch.mean(w1))**2))
+print('Dispersion(w{n}) = {d}'.format(n=2, d = torch.mean(w2*w2) - (torch.mean(w2))**2))
+print('Dispersion(w{n}) = {d}'.format(n=3, d = torch.mean(w3*w3) - (torch.mean(w3))**2))
 
 #y_pred = x.add(b).matmul(w1).sigmoid().mm(w2).sigmoid()
 #ans = torch.argmax(y, dim=1)
