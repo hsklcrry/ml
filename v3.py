@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Oct  2 19:13:18 2018
-
-@author: igeh
-"""
-
 from PIL import Image
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -17,7 +10,6 @@ import torch.nn.functional as F
 def show_x(x):
     img = Image.fromarray(x.numpy().reshape(img_shape))
     img.show()
-
 
 img_shape = (16, 16)
 
@@ -62,7 +54,7 @@ y = Variable(train_class.type(dtype), requires_grad=False)
 b = Variable(0.09*torch.randn(H1).type(dtype), requires_grad=True)
 w1 = Variable(0.02*torch.randn(D_in, H1).type(dtype), requires_grad=True)
 w2 = Variable(0.08*torch.randn(H1, H2).type(dtype), requires_grad=True)
-w3 = Variable(0.2*torch.randn(H2, D_out).type(dtype), requires_grad=True)
+w3 = Variable(0.02*torch.randn(H2, D_out).type(dtype), requires_grad=True)
 
 def forward(x, b):
     return x.matmul(w1).add(b).tanh().matmul(w2).tanh().matmul(w3).sigmoid()
@@ -96,7 +88,7 @@ for epoch in range(epochs):
 valid = 0
 for t in range(Nclasses*Mset):
     x_t = test_data[t]
-    y_pred = activ(x_t, b)
+    y_pred = forward(x_t, b)
     
     ans_p = torch.argmax(y_pred)
     ans = torch.argmax(test_class[t])
@@ -110,19 +102,3 @@ print('Dispersion(b) = {d}'.format(d = torch.mean(b*b) - (torch.mean(b))**2))
 print('Dispersion(w{n}) = {d}'.format(n=1, d = torch.mean(w1*w1) - (torch.mean(w1))**2))
 print('Dispersion(w{n}) = {d}'.format(n=2, d = torch.mean(w2*w2) - (torch.mean(w2))**2))
 print('Dispersion(w{n}) = {d}'.format(n=3, d = torch.mean(w3*w3) - (torch.mean(w3))**2))
-#    
-#    y_pred = x.add(b).matmul(w1).sigmoid().mm(w2).sigmoid()
-#    ans = torch.argmax(y, dim=1)
-#    ans_p = torch.argmax(y_pred, dim=1)
-#    
-#    valid = ((ans_p - ans) == 0).sum()
-#    print(valid)
-#    
-#    y_test = test_data.mm(w1).tanh().mm(w2).tanh()
-#    (M, _) = y_test.shape
-#    for j in range(M):
-#        
-#    y_pred = x.mm(w1).clamp(min=0).mm(w2).tanh()
-#    
-#    
-#    show_x(test_data.permute((2,0,3,1))[1,2,0].numpy())
