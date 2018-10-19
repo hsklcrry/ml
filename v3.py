@@ -1,11 +1,10 @@
 from PIL import Image
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 import scipy.io
 import numpy as np
 import torch
 from torch.autograd import Variable
-import torch.nn.functional as F
+import time
 
 def show_x(x):
     img = Image.fromarray(x.numpy().reshape(img_shape))
@@ -39,29 +38,31 @@ for i in range(Mset):
 
 
 dtype = torch.float64
-train_data = torch.from_numpy( bin_data[:, 0:Nset, :]).permute((1,2,0)).flatten(0,1).type(dtype)
-test_data = torch.from_numpy( bin_data[:, Nset:(Nset + Mset), :]).permute((1,2,0)).flatten(0,1).type(dtype)
+train_data = torch.from_numpy( bin_data[:, 0:Nset, :]).cuda().permute((1,2,0)).flatten(0,1).type(dtype)
+test_data = torch.from_numpy( bin_data[:, Nset:(Nset + Mset), :]).cuda().permute((1,2,0)).flatten(0,1).type(dtype)
 
-test_class = torch.from_numpy( test_class).type(dtype).permute((0,1,2)).flatten(0,1)
-train_class = torch.from_numpy( train_class).type(dtype).permute((0,1,2)).flatten(0,1)
+test_class = torch.from_numpy( test_class).cuda().type(dtype).permute((0,1,2)).flatten(0,1)
+train_class = torch.from_numpy( train_class).cuda().type(dtype).permute((0,1,2)).flatten(0,1)
 
 
 N, D_in, H1, H2, D_out = Nclasses*Nset, 256, 500, 100, 10
 
-x = Variable(train_data.type(dtype), requires_grad=False)
-y = Variable(train_class.type(dtype), requires_grad=False)
+x = Variable(train_data.type(dtype).cuda(), requires_grad=False)
+y = Variable(train_class.type(dtype).cuda(), requires_grad=False)
 
-b = Variable(0.09*torch.randn(H1).type(dtype), requires_grad=True)
-w1 = Variable(0.02*torch.randn(D_in, H1).type(dtype), requires_grad=True)
-w2 = Variable(0.08*torch.randn(H1, H2).type(dtype), requires_grad=True)
-w3 = Variable(0.02*torch.randn(H2, D_out).type(dtype), requires_grad=True)
+b = Variable(0.09*torch.randn(H1).type(dtype).cuda(), requires_grad=True)
+w1 = Variable(0.02*torch.randn(D_in, H1).type(dtype).cuda(), requires_grad=True)
+w2 = Variable(0.08*torch.randn(H1, H2).type(dtype).cuda(), requires_grad=True)
+w3 = Variable(0.02*torch.randn(H2, D_out).type(dtype).cuda(), requires_grad=True)
 
 def forward(x, b):
     return x.matmul(w1).add(b).tanh().matmul(w2).tanh().matmul(w3).sigmoid()
 
+time1 = time.time()
+
 learning_rate = 0.01
 k = 0
-epochs = 10
+epochs = 2
 for epoch in range(epochs):
     for (x_t, y_t) in zip(x, y):
         x1 = Variable(x_t.data, requires_grad=False)
@@ -84,6 +85,8 @@ for epoch in range(epochs):
         
         k += 1
 
+time1 -= time.time()
+time1 = -time1
 
 valid = 0
 for t in range(Nclasses*Mset):
@@ -97,8 +100,9 @@ for t in range(Nclasses*Mset):
         valid += 1
 
 print('valid = {valid}%'.format(valid=100*valid/(Nclasses * Mset)))
-
-print('Dispersion(b) = {d}'.format(d = torch.mean(b*b) - (torch.mean(b))**2))
-print('Dispersion(w{n}) = {d}'.format(n=1, d = torch.mean(w1*w1) - (torch.mean(w1))**2))
-print('Dispersion(w{n}) = {d}'.format(n=2, d = torch.mean(w2*w2) - (torch.mean(w2))**2))
-print('Dispersion(w{n}) = {d}'.format(n=3, d = torch.mean(w3*w3) - (torch.mean(w3))**2))
+print('time: {}'.format(time1))
+#
+#print('Dispersion(b) = {d}'.format(d = torch.mean(b*b) - (torch.mean(b))**2))
+#print('Dispersion(w{n}) = {d}'.format(n=1, d = torch.mean(w1*w1) - (torch.mean(w1))**2))
+#print('Dispersion(w{n}) = {d}'.format(n=2, d = torch.mean(w2*w2) - (torch.mean(w2))**2))
+#print('Dispersion(w{n}) = {d}'.format(n=3, d = torch.mean(w3*w3) - (torch.mean(w3))**2))
