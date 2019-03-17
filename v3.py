@@ -6,6 +6,8 @@ import torch
 from torch.autograd import Variable
 import time
 
+useCuda = True
+
 def show_x(x):
     img = Image.fromarray(x.numpy().reshape(img_shape))
     img.show()
@@ -20,7 +22,7 @@ Nset = 400
 Mset = 100
 Nclasses = 10
 
-bin_data = raw_data.copy()
+bin_data = raw_data
 
 train_class = np.zeros((Nset, 10, 10), dtype=np.int)
 test_class = np.zeros((Mset, 10, 10), dtype=np.int)
@@ -38,17 +40,16 @@ for i in range(Mset):
 
 
 dtype = torch.float64
-train_data = torch.from_numpy( bin_data[:, 0:Nset, :]).cuda().permute((1,2,0)).flatten(0,1).type(dtype)
-test_data = torch.from_numpy( bin_data[:, Nset:(Nset + Mset), :]).cuda().permute((1,2,0)).flatten(0,1).type(dtype)
+train_data = torch.from_numpy( bin_data[:, 0:Nset, :]).permute((1,2,0)).flatten(0,1).type(dtype)
+test_data = torch.from_numpy( bin_data[:, Nset:(Nset + Mset), :]).permute((1,2,0)).flatten(0,1).type(dtype)
 
 test_class = torch.from_numpy( test_class).cuda().type(dtype).permute((0,1,2)).flatten(0,1)
 train_class = torch.from_numpy( train_class).cuda().type(dtype).permute((0,1,2)).flatten(0,1)
 
-
 N, D_in, H1, H2, D_out = Nclasses*Nset, 256, 500, 100, 10
 
-x = Variable(train_data.type(dtype).cuda(), requires_grad=False)
-y = Variable(train_class.type(dtype).cuda(), requires_grad=False)
+x = Variable(train_data.type(dtype), requires_grad=False)
+y = Variable(train_class.type(dtype), requires_grad=False)
 
 b = Variable(0.09*torch.randn(H1).type(dtype).cuda(), requires_grad=True)
 w1 = Variable(0.02*torch.randn(D_in, H1).type(dtype).cuda(), requires_grad=True)
@@ -58,17 +59,34 @@ w3 = Variable(0.02*torch.randn(H2, D_out).type(dtype).cuda(), requires_grad=True
 def forward(x, b):
     return x.matmul(w1).add(b).tanh().matmul(w2).tanh().matmul(w3).sigmoid()
 
+if useCuda:
+    train_class = train_class.cuda()
+    train_data = train_data.cuda()
+    test_class = test_class.cuda()
+    test_data = test_data.cuda()
+    x = x.cuda()
+    y = y.cuda()
+    w1 = w1.cuda()
+    w2 = w2.cuda()
+    w3 = w3.cuda()
+    b = b.cuda()
+    
+    
 time1 = time.time()
 
 learning_rate = 0.01
 k = 0
 epochs = 2
 for epoch in range(epochs):
-    for (x_t, y_t) in zip(x, y):
-        x1 = Variable(x_t.data, requires_grad=False)
-        y_pred = forward(x1, b)
-
-        loss = (y_pred - y_t).pow(2).mean()
+#    for (x_t, y_t) in zip(x, y):
+    for i in range(x.shape[0]):
+        x1 = Variable(x[i].data, requires_grad=False)
+        if useCuda:
+            x1_cuda = x1.cuda()
+            y_pred = forward(x1_cuda, b)
+        else:
+            y_pred = forward(x1, b)
+        loss = (y_pred - y[i]).pow(2).mean()
         print(loss.data, k / (len(x)*epochs))
 
         loss.backward()
